@@ -15,19 +15,20 @@ class GigaChatService:
         self._token: Optional[str] = None
         self._token_expires_at: float = 0
 
-        verify = settings.gigachat_verify_ssl
+        # Читаем настройку из .env (по умолчанию False для совместимости с GigaChat)
+        verify_ssl = getattr(settings, 'gigachat_verify_ssl', False)
 
         # Клиент для OAuth (отдельный хост)
         self._oauth_client = httpx.AsyncClient(
             timeout=30.0,
-            verify=verify,
+            verify=verify_ssl,
         )
 
         # Клиент для Chat API
         self._api_client = httpx.AsyncClient(
             base_url=settings.gigachat_api_url,
-            timeout=60.0,  # генерация может быть долгой
-            verify=verify,
+            timeout=60.0,
+            verify=verify_ssl,
         )
 
     async def _get_token(self, force_refresh: bool = False) -> str:

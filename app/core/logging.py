@@ -1,47 +1,26 @@
-# app/core/logging.py
-import logging
 import sys
-import structlog
+from loguru import logger
+
 from app.core.config import settings
 
 
 def setup_logging() -> None:
-    shared_processors = [
-        structlog.contextvars.merge_contextvars,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.UnicodeDecoder(),
-    ]
+    # Убираем стандартный sink (чтобы не дублировать)
+    logger.remove()
 
-    if settings.log_format == "json":
-        renderer = structlog.processors.JSONRenderer(ensure_ascii=False)
-    else:
-        renderer = structlog.dev.ConsoleRenderer()
-
-    structlog.configure(
-        processors=[
-            *shared_processors,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
-        logger_factory=structlog.stdlib.LoggerFactory(),
-        wrapper_class=structlog.stdlib.BoundLogger,
-        cache_logger_on_first_use=True,
+    # 1. В консоль (stderr) — для docker logs
+    logger.add(
+        sys.stderr,
+        level="INFO",
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     )
 
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processors=[structlog.stdlib.ProcessorFormatter.remove_processors_meta, renderer],
+    # 2. В файл с ротацией — для истории
+    logger.add(
+        "logs/app_{time:YYYY-MM-DD}.log",
+        rotation="00:00",   # новый файл каждый день
+        retention="14 days",# хранить 14 дней
+        compression="zip",  # старые сжимать
+        level="DEBUG",      # в файл пишем подробнее
+        enqueue=True,       # безопасно для async/multiprocessing
     )
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-
-    root = logging.getLogger()
-    root.handlers.clear()
-    root.addHandler(handler)
-    root.setLevel(settings.log_level)
-
-    # тише от сторонних либ
-    for noisy in ("httpx", "httpcore", "gigachat", "uvicorn.access"):
-        logging.getLogger(noisy).setLevel(logging.WARNING)

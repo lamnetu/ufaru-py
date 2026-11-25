@@ -1,3 +1,6 @@
+from app.core.logging import setup_logging
+setup_logging()
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.exceptions import ServiceError
 
-# Импортируем из routes/ — как у тебя реально лежит
 from app.api.routes.health import router as health_router
 from app.api.routes.rewrite import router as rewrite_router
 

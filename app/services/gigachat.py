@@ -38,7 +38,7 @@ class GigaChatService:
 
         logger.info("GigaChat: requesting new OAuth token")
 
-        credentials = base64.b64encode(settings.gigachat_api_key.encode()).decode()
+        credentials = settings.gigachat_api_key
         rq_uid = str(uuid.uuid4())
 
         try:
@@ -54,6 +54,9 @@ class GigaChatService:
             )
             resp.raise_for_status()
             data = resp.json()
+            # === ЛОГИРУЕМ ВЕСЬ ОТВЕТ ===
+            logger.info(f"GigaChat OAuth raw response: {data}")
+            # ===========================
         except httpx.HTTPStatusError as e:
             logger.error(f"GigaChat OAuth HTTP error: {e.response.status_code} {e.response.text}")
             raise ServiceError(
@@ -69,9 +72,13 @@ class GigaChatService:
                 message=f"Не удалось соединиться с OAuth: {type(e).__name__}",
             )
 
-        self._token = data["tok"]  # GigaChat возвращает поле "tok", не "access_token"!
-        self._token_expires_at = now + data.get("expires_at", 1800)  # fallback 30 мин
-        logger.info(f"GigaChat: token received, valid for ~{data.get('expires_at', 1800)}s")
+        if "access_token" not in data:
+            logger.error(f"Unexpected GigaChat OAuth response: {data}")
+            raise ServiceError(502, "gigachat_bad_response", "Нет access_token в ответе OAuth")
+
+        self._token = data["access_token"]
+        self._token_expires_at = data["expires_at"] / 1000
+        logger.info("GigaChat: token received successfully")
         return self._token
 
     async def rewrite(self, text: str, system_prompt: Optional[str] = None) -> str:

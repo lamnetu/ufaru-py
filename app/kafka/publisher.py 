@@ -1,0 +1,56 @@
+# app/kafka/publisher.py
+from __future__ import annotations
+
+import json
+from typing import Any, Protocol
+
+import structlog
+
+from app.config import settings
+
+log = structlog.get_logger()
+
+
+class Publisher(Protocol):
+    async def publish(self, topic: str, payload: dict[str, Any], key: str | None = None) -> None: ...
+
+
+class LogPublisher:
+    """Заглушка: пишет в лог. Потом заменим на KafkaPublisher."""
+
+    async def publish(self, topic: str, payload: dict[str, Any], key: str | None = None) -> None:
+        log.info("kafka.publish.stub", topic=topic, key=key,
+                 payload_size=len(json.dumps(payload, ensure_ascii=False)))
+
+
+class KafkaPublisher:
+    """Включается флагом KAFKA_ENABLED=true. Требует aiokafka."""
+
+    def __init__(self) -> None:
+        from aiokafka import AIOKafkaProducer  # noqa: WPS433
+        self._producer_cls = AIOKafkaProducer
+        self._producer = None
+
+    async def start(self) -> None:
+        self._producer = self._producer_cls(
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8"),
+        )
+        await self._producer.start()
+        log.info("kafka.producer.started", servers=settings.kafka_bootstrap_servers)
+
+    async def stop(self) -> None:
+        if self._producer:
+            await self._producer.stop()
+
+    async def publish(self, topic: str, payload: dict[str, Any], key: str | None = None) -> None:
+        assert self._producer is not None
+        await self._producer.send_and_wait(
+            topic, payload, key=key.encode() if key else None
+        )
+
+
+def get_publisher() -> Publisher:
+    if settings.kafka_enabled:
+        return KafkaPublisher()
+    return LogPublisher()

@@ -1,43 +1,21 @@
-# app/main.py
-from __future__ import annotations
-
-from contextlib import asynccontextmanager
-from typing import AsyncIterator
-
-import structlog
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from prometheus_fastapi_instrumentator import Instrumentator
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, rewrite
-from app.config import settings
+from app.core.config import settings
 from app.core.exceptions import ServiceError
-from app.core.logging import setup_logging
 
-log = structlog.get_logger()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    setup_logging()
-    log.info("app.startup", environment=settings.environment)
-    yield
-    log.info("app.shutdown")
+# Импортируем из routes/ — как у тебя реально лежит
+from app.api.routes.health import router as health_router
+from app.api.routes.rewrite import router as rewrite_router
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(
-        title="Giga News Service",
-        version="0.1.0",
-        lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
-    )
+    app = FastAPI(title="GigaChat News Service", version="1.0.0")
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # в проде — whitelist
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -45,15 +23,13 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ServiceError)
     async def _service_error_handler(_: Request, exc: ServiceError) -> JSONResponse:
-        return JSONResponse(status_code=exc.status,
-                            content={"code": exc.code, "message": exc.message})
+        return JSONResponse(
+            status_code=exc.status,
+            content={"code": exc.code, "message": exc.message},
+        )
 
-    app.include_router(health.router)
-    app.include_router(rewrite.router, prefix="/api/v1")
-
-    if settings.environment != "test":
-        Instrumentator().instrument(app).expose(app, include_in_schema=False)
-
+    app.include_router(health_router)
+    app.include_router(rewrite_router, prefix="/api/v1")
     return app
 
 

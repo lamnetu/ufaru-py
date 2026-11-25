@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services.gigachat_client import CompletionResult
+from app.services.gigachat import CompletionResult
 
 
 def _ok_result(content="Переработанный текст."):

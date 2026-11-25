@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import settings
-from app.services.gigachat_client import GigaChatClient
+from app.services.gigachat import GigaChatClient
 from app.services.rewriter import Rewriter
 
 _bearer = HTTPBearer()

@@ -7,7 +7,7 @@ import structlog
 
 from app.core.cache import cache
 from app.core.exceptions import TextTooLongError
-from app.services.gigachat_client import CompletionResult, LLMClient
+from app.services.gigachat import CompletionResult, LLMClient
 from app.services.prompts import build_messages
 
 log = structlog.get_logger()

@@ -7,7 +7,7 @@ from typing import Any
 from cachetools import TTLCache
 
 from app.config import settings
-from app.services.gigachat_client import CompletionResult
+from app.services.gigachat import CompletionResult
 
 
 class InMemoryCache:

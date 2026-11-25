@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.schemas import RewriteRequest, RewriteResponse
 from app.services.gigachat import gigachat_service
 from app.services.prompts import TEMPLATES
+from app.core.enums import RewriteMode
 
 router = APIRouter()
 
@@ -11,9 +12,9 @@ router = APIRouter()
 async def list_modes():
     """Список доступных режимов обработки."""
     return {
-        mode: {
+        mode.value: {
             "description": tpl.system[:100] + "...",
-            "has_custom_prompt": mode == "custom",
+            "has_custom_prompt": mode == RewriteMode.CUSTOM,
         }
         for mode, tpl in TEMPLATES.items()
     }

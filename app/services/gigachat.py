@@ -1,4 +1,4 @@
-import base64
+from app.core.enums import RewriteMode
 import time
 import uuid
 from typing import Optional
@@ -86,7 +86,7 @@ class GigaChatService:
         return self._token
 
     async def rewrite(
-            self, text: str, mode: str = "rewrite", custom_prompt: str | None = None
+            self, text: str, mode: RewriteMode = RewriteMode.REWRITE, custom_prompt: str | None = None
     ) -> str:
         """Переработать текст через GigaChat.
 

@@ -16,7 +16,7 @@ class GigaChatService:
         self._token_expires_at: float = 0
 
         # Читаем настройку из .env (по умолчанию False для совместимости с GigaChat)
-        verify_ssl = getattr(settings, 'gigachat_verify_ssl', False)
+        verify_ssl = getattr(settings, "gigachat_verify_ssl", False)
 
         # Клиент для OAuth (отдельный хост)
         self._oauth_client = httpx.AsyncClient(
@@ -58,7 +58,9 @@ class GigaChatService:
             logger.info(f"GigaChat OAuth raw response: {data}")
             # ===========================
         except httpx.HTTPStatusError as e:
-            logger.error(f"GigaChat OAuth HTTP error: {e.response.status_code} {e.response.text}")
+            logger.error(
+                f"GigaChat OAuth HTTP error: {e.response.status_code} {e.response.text}"
+            )
             raise ServiceError(
                 status=502,
                 code="gigachat_auth_failed",
@@ -74,25 +76,39 @@ class GigaChatService:
 
         if "access_token" not in data:
             logger.error(f"Unexpected GigaChat OAuth response: {data}")
-            raise ServiceError(502, "gigachat_bad_response", "Нет access_token в ответе OAuth")
+            raise ServiceError(
+                502, "gigachat_bad_response", "Нет access_token в ответе OAuth"
+            )
 
         self._token = data["access_token"]
         self._token_expires_at = data["expires_at"] / 1000
         logger.info("GigaChat: token received successfully")
         return self._token
 
-    async def rewrite(self, text: str, system_prompt: Optional[str] = None) -> str:
+    async def rewrite(
+            self, text: str, mode: str = "rewrite", custom_prompt: str | None = None
+    ) -> str:
+        """Переработать текст через GigaChat.
+
+        Args:
+            text: исходный текст
+            mode: режим из TEMPLATES (rewrite/summary/social/seo/official/custom)
+            custom_prompt: кастомная системная инструкция (только для mode="custom")
+        """
+        from app.services.prompts import build_messages
+
+        system_prompt, user_prompt = build_messages(mode, text, custom_prompt)
         token = await self._get_token()
 
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": text})
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
 
         payload = {
             "model": "GigaChat",
             "messages": messages,
-            "temperature": 0.3,
+            "temperature": 0.1,
             "max_tokens": 1500,
         }
 
@@ -122,7 +138,9 @@ class GigaChatService:
             data = resp.json()
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"GigaChat API HTTP error: {e.response.status_code} {e.response.text}")
+            logger.error(
+                f"GigaChat API HTTP error: {e.response.status_code} {e.response.text}"
+            )
             raise ServiceError(
                 status=502,
                 code="gigachat_completion_failed",

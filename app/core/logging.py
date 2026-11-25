@@ -18,9 +18,9 @@ def setup_logging() -> None:
     # 2. В файл с ротацией — для истории
     logger.add(
         "logs/app_{time:YYYY-MM-DD}.log",
-        rotation="00:00",   # новый файл каждый день
-        retention="14 days",# хранить 14 дней
+        rotation="00:00",  # новый файл каждый день
+        retention="14 days",  # хранить 14 дней
         compression="zip",  # старые сжимать
-        level="DEBUG",      # в файл пишем подробнее
-        enqueue=True,       # безопасно для async/multiprocessing
+        level="DEBUG",  # в файл пишем подробнее
+        enqueue=True,  # безопасно для async/multiprocessing
     )

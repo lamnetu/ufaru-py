@@ -50,7 +50,9 @@ class Rewriter:
 
         system, user = build_messages(inp.mode, text, inp.custom_prompt)
 
-        if (cached := cache.get(system, user, inp.temperature, inp.max_tokens)) is not None:
+        if (
+            cached := cache.get(system, user, inp.temperature, inp.max_tokens)
+        ) is not None:
             log.info("rewriter.cache.hit", mode=inp.mode)
             return RewriteOutput(
                 result=cached.content,
@@ -68,8 +70,13 @@ class Rewriter:
         )
         cache.set(system, user, inp.temperature, inp.max_tokens, result)
 
-        log.info("rewriter.ok", mode=inp.mode, duration_ms=result.duration_ms,
-                 tokens=result.total_tokens, cached=False)
+        log.info(
+            "rewriter.ok",
+            mode=inp.mode,
+            duration_ms=result.duration_ms,
+            tokens=result.total_tokens,
+            cached=False,
+        )
 
         return RewriteOutput(
             result=result.content,

@@ -8,6 +8,7 @@ from app.main import create_app
 @pytest.fixture()
 def app():
     import os
+
     os.environ.setdefault("GIGACHAT_CREDENTIALS", "test-creds")
     os.environ.setdefault("API_KEY", "test-key")
     os.environ.setdefault("ENVIRONMENT", "test")

@@ -27,3 +27,8 @@ dev = [
     "mypy>=1.13",
 ]
 kafka = ["aiokafka>=0.11"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.6",
+]
